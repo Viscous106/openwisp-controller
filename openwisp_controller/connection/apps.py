@@ -188,3 +188,13 @@ class ConnectionConfig(AppConfig):
                 "icon": "ow-access-credential",
             },
         )
+        register_menu_subitem(
+            group_position=30,
+            item_position=10,
+            config={
+                "label": _("Mass Commands"),
+                "model": get_model_name("connection", "MassCommand"),
+                "name": "changelist",
+                "icon": "ow-command",
+            },
+        )

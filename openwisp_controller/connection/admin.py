@@ -21,6 +21,19 @@ from .widgets import CommandSchemaWidget, CredentialsSchemaWidget
 Credentials = swapper.load_model("connection", "Credentials")
 DeviceConnection = swapper.load_model("connection", "DeviceConnection")
 Command = swapper.load_model("connection", "Command")
+MassCommand = swapper.load_model("connection", "MassCommand")
+
+@admin.register(MassCommand)
+class MassCommandAdmin(MultitenantAdminMixin, admin.ModelAdmin):
+    list_display = (
+        "type",
+        "target",
+        "organization",
+        "author",
+        "status",
+        "created",
+    )
+    list_filter = [MultitenantOrgFilter, "type", "status", "target"]
 
 
 class CredentialsForm(forms.ModelForm):

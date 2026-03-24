@@ -3,6 +3,7 @@ import logging
 
 import django
 import jsonschema
+from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.utils import timezone
@@ -390,11 +391,72 @@ class AbstractDeviceConnection(ConnectorMixin, TimeStampedEditableModel):
         )
 
 
+class AbstractMassCommand(TimeStampedEditableModel):
+    TARGET_CHOICES = (
+        ("all", _("All devices")),
+        ("organization", _("Organization")),
+        ("group", _("Device Group")),
+        ("location", _("Location")),
+        ("specific", _("Specific Devices")),
+    )
+    STATUS_CHOICES = (
+        ("idle", _("Idle")),
+        ("in-progress", _("In progress")),
+        ("success", _("Success")),
+        ("failed", _("Failed")),
+    )
+    
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    organization = models.ForeignKey(
+        get_model_name("openwisp_users", "Organization"),
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+    target = models.CharField(max_length=32, choices=TARGET_CHOICES)
+    
+    type = models.CharField(
+        max_length=16,
+        choices=(
+            COMMAND_CHOICES
+            if django.VERSION < (5, 0)
+            else get_command_choices
+        ),
+    )
+    input = JSONField(
+        blank=True,
+        null=True,
+        load_kwargs={"object_pairs_hook": collections.OrderedDict},
+        dump_kwargs={"indent": 4},
+    )
+    status = models.CharField(
+        max_length=12, choices=STATUS_CHOICES, default=STATUS_CHOICES[0][0]
+    )
+
+    class Meta:
+        verbose_name = _("Mass Command")
+        verbose_name_plural = _("Mass Commands")
+        abstract = True
+        ordering = ("-created",)
+
+    def __str__(self):
+        return f"{self.get_type_display()} - {self.get_status_display()}"
+
+
 class AbstractCommand(TimeStampedEditableModel):
     STATUS_CHOICES = (
         ("in-progress", _("in progress")),
         ("success", _("success")),
         ("failed", _("failed")),
+    )
+    mass_command = models.ForeignKey(
+        get_model_name("connection", "MassCommand"),
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="commands",
     )
     device = models.ForeignKey(
         get_model_name("config", "Device"), on_delete=models.CASCADE
